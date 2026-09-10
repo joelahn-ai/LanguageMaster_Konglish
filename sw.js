@@ -1,5 +1,5 @@
-const CACHE='word-magician-shell-7b018fe36ff7';
-const ASSETS=['./','./index.html','./styles.css','./app.js','./data.js','./state.js','./card-image.js','./manifest.webmanifest','./icons/icon.svg','./icons/icon-192.png','./icons/icon-512.png','./icons/maskable-512.png'];
+const CACHE='word-magician-shell-e9407d7ee1a2';
+const ASSETS=['./','./index.html','./styles.css','./app.js','./data.js','./state.js','./card-image.js','./catalog.js','./content-history.js','./learning.js','./views.js','./excel-export.js','./manifest.webmanifest','./icons/icon.svg','./icons/icon-192.png','./icons/icon-512.png','./icons/maskable-512.png'];
 // A new worker must not copy still-fresh files from the browser's old HTTP cache.
 self.addEventListener('install',event=>event.waitUntil(caches.open(CACHE).then(cache=>cache.addAll(ASSETS.map(asset=>new Request(asset,{cache:'reload'}))))));
 self.addEventListener('activate',event=>event.waitUntil((async()=>{

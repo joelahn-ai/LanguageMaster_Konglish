@@ -1,5 +1,5 @@
 export const STORAGE_KEY = 'word-magician.personal.v1';
-export const emptyState = () => ({schemaVersion:1,entries:{},settings:{level:0,studyMode:'stage',fontSize:'normal',includeSentence:true}});
+export const emptyState = () => ({schemaVersion:1,entries:{},settings:{level:0,studyMode:'stage',contentVersion:'',fontSize:'normal',includeSentence:true}});
 export function studyPool(items,settings) {
   return items.filter(i=>settings.studyMode==='cumulative'?i.level<=settings.level:i.level===settings.level);
 }
@@ -15,7 +15,8 @@ export function validateState(value) {
   const s = value.settings;
   if (![0,1,2].includes(s.level) || !['normal','large','largest'].includes(s.fontSize) || typeof s.includeSentence !== 'boolean') throw new Error('백업의 설정 형식이 올바르지 않습니다.');
   if (s.studyMode !== undefined && !['stage','cumulative'].includes(s.studyMode)) throw new Error('백업의 학습 범위가 올바르지 않습니다.');
-  result.settings = {level:s.level,studyMode:s.studyMode ?? 'stage',fontSize:s.fontSize,includeSentence:s.includeSentence};
+  if(s.contentVersion!==undefined&&(typeof s.contentVersion!=='string'||!/^([a-z0-9][a-z0-9.-]{2,79})?$/.test(s.contentVersion)))throw new Error('백업의 단어집 버전이 올바르지 않습니다.');
+  result.settings = {level:s.level,studyMode:s.studyMode ?? 'stage',contentVersion:s.contentVersion??'',fontSize:s.fontSize,includeSentence:s.includeSentence};
   return result;
 }
 export function loadState(storage) {
