@@ -697,3 +697,5 @@ opacity:1;
 transform:translateY(0)}
 }
 }
+
+.scope-control{margin-block:16px 24px;max-width:44rem}.scope-control label{display:block;margin-bottom:8px;font-weight:600}.scope-control select{width:100%}.backup-panel{grid-column:1 / -1}.backup-actions{display:flex;flex-wrap:wrap;gap:12px}.backup-actions button{flex:1;min-width:10rem}.transfer-steps{padding-left:1.5em;line-height:1.8}.transfer-steps li{margin-block:8px}
