@@ -2,9 +2,10 @@ import {studyPool,entryFor} from './state.js';
 import {wordGroups,progress,savedItems,makeQuiz} from './learning.js';
 import {exportWorkbook} from './excel-export.js';
 import {downloadBlob} from './card-image.js';
+import {summarizeContent} from './catalog.js';
 export function createViews(env){
   const {app,esc,$,editions}=env;
-  let filter='all',period='all',quizSource='seen',direction='en-ko',quiz=null;
+  let filter='all',period='all',quizSource='seen',direction='en-ko',quiz=null,savedPage=0;
   const buttonGroup=(options,selected,attr)=>options.map(([value,label])=>`<button ${attr}="${value}" aria-pressed="${value===selected}">${label}</button>`).join('');
   function home(){
     const {items,state}=env.context();
@@ -16,11 +17,17 @@ export function createViews(env){
   }
   function saved(){
     const {items,state}=env.context(),list=savedItems(items,state,filter,period);
-    app.innerHTML=`<div class="page-heading"><div class="eyebrow">나의 말이 된 단어들</div><h1>내 카드</h1><p class="muted">즐겨찾기와 내 문장, 이미 본 단어를 다시 만나 보세요.</p></div><div class="toolbar" aria-label="내 카드 종류">${buttonGroup([['all','내 카드 전체'],['favorites','즐겨찾기'],['written','문장 있는 카드'],['seen','이미 본 단어']],filter,'data-filter')}</div><div class="toolbar" aria-label="기간 필터">${buttonGroup([['all','전체 기간'],['day','오늘'],['week','이번 주'],['month','이번 달']],period,'data-period')}</div><p class="hint">마지막 학습 기록·문장·즐겨찾기 수정일 기준 · 이번 주는 월요일부터예요.</p><div class="export-bar"><p>${list.length}개 뜻 · ${wordGroups(list).length}개 단어</p><button id="export-saved" ${list.length?'':'disabled'}>이 목록 엑셀 저장</button></div><p class="hint">필터에 보이는 카드와 내 문장을 .xlsx로 저장해요. A4 가로 인쇄 설정이 포함돼요.</p><div class="saved-list">${list.map(w=>{
+    const pageSize=50,pages=Math.max(1,Math.ceil(list.length/pageSize));savedPage=Math.min(savedPage,pages-1);
+    const visible=list.slice(savedPage*pageSize,(savedPage+1)*pageSize);
+    app.innerHTML=`<div class="page-heading"><div class="eyebrow">나의 말이 된 단어들</div><h1>내 카드</h1><p class="muted">즐겨찾기와 내 문장, 이미 본 단어를 다시 만나 보세요.</p></div><div class="toolbar" aria-label="내 카드 종류">${buttonGroup([['all','내 카드 전체'],['favorites','즐겨찾기'],['written','문장 있는 카드'],['seen','이미 본 단어']],filter,'data-filter')}</div><div class="toolbar" aria-label="기간 필터">${buttonGroup([['all','전체 기간'],['day','오늘'],['week','이번 주'],['month','이번 달']],period,'data-period')}</div><p class="hint">마지막 학습 기록·문장·즐겨찾기 수정일 기준 · 이번 주는 월요일부터예요.</p><div class="export-bar"><p>${list.length}개 뜻 · ${wordGroups(list).length}개 단어</p><button id="export-saved" ${list.length?'':'disabled'}>이 목록 엑셀 저장</button></div><p class="hint">필터에 보이는 카드와 내 문장을 .xlsx로 저장해요. A4 가로 인쇄 설정이 포함돼요.</p><div class="saved-list">${visible.map(w=>{
       const r=entryFor(state,w.id);return `<article class="saved-item"><div><h2 lang="en">${esc(w.text)}${r.favorite?' ☆':''}</h2><p>${esc(w.word.pos)} · ${esc(w.meaning)}</p>${r.sentence?`<p class="saved-sentence">${esc(r.sentence)}</p>`:''}<p class="hint">${new Date(r.updatedAt).toLocaleDateString('ko-KR')}</p></div><button data-open="${esc(w.id)}">카드 열기</button></article>`;
     }).join('')||'<div class="empty">이 조건에 맞는 카드가 없어요.<br>다른 기간을 선택하거나 단어를 학습해 보세요.</div>'}</div>`;
-    app.querySelectorAll('[data-filter]').forEach(b=>b.onclick=()=>{filter=b.dataset.filter;saved();});
-    app.querySelectorAll('[data-period]').forEach(b=>b.onclick=()=>{period=b.dataset.period;saved();});
+    if(pages>1){
+      $('.saved-list').insertAdjacentHTML('beforebegin',`<nav class="toolbar saved-pages" aria-label="카드 목록 페이지"><button id="cards-prev" ${savedPage?'':'disabled'}>← 이전 목록</button><span aria-live="polite">${savedPage+1} / ${pages}쪽</span><button id="cards-next" ${savedPage+1<pages?'':'disabled'}>다음 목록 →</button></nav><p class="hint">${savedPage*pageSize+1}–${Math.min((savedPage+1)*pageSize,list.length)}번째 카드 · 엑셀에는 전체 ${list.length.toLocaleString()}개가 들어가요.</p>`);
+      $('#cards-prev').onclick=()=>{savedPage--;saved();};$('#cards-next').onclick=()=>{savedPage++;saved();};
+    }
+    app.querySelectorAll('[data-filter]').forEach(b=>b.onclick=()=>{filter=b.dataset.filter;savedPage=0;saved();});
+    app.querySelectorAll('[data-period]').forEach(b=>b.onclick=()=>{period=b.dataset.period;savedPage=0;saved();});
     app.querySelectorAll('[data-open]').forEach(b=>b.onclick=()=>env.study(b.dataset.open));
     $('#export-saved').onclick=()=>exportList(list);
   }
@@ -53,7 +60,8 @@ export function createViews(env){
   }
   function versionsPanel(){
     const {version}=env.context();
-    return `<section class="settings-panel backup-panel"><h2>단어집 버전 선택</h2><p>원하는 버전을 한 번 눌러 바꿀 수 있어요. 같은 ID의 내 문장과 진도는 버전 사이에 이어집니다.</p><div class="version-list">${env.catalog.map(s=>`<button data-version="${esc(s.id)}" aria-pressed="${s.id===version}"><strong>${esc(s.title)}</strong><span>${esc(s.id)}</span><span>${wordGroups(s.items).length}개 단어${s.id===version?' · 사용 중':''}</span></button>`).join('')}</div><button id="check-updates">새 배포 확인</button><p class="hint">새 단어집이 배포되면 앱 새 버전 적용 후 여기에 나타나요. 현재 선택은 자동으로 바뀌지 않아요.</p></section>`;
+    const summaries=env.catalog.map((s,i)=>summarizeContent(s.items,env.catalog[i+1]?.items??null));
+    return `<section class="settings-panel backup-panel"><h2>단어집 버전 선택</h2><p>원하는 버전을 한 번 눌러 바꿀 수 있어요. 같은 ID의 내 문장과 진도는 버전 사이에 이어집니다.</p><div class="version-list">${env.catalog.map((s,i)=>`<button data-version="${esc(s.id)}" aria-pressed="${s.id===version}"><strong>${esc(s.title)}</strong><span>${esc(s.id)}</span><span>${summaries[i].total.toLocaleString()}개 단어${s.id===version?' · 사용 중':''}</span><span>기본 ${summaries[i].levels[0].toLocaleString()} · 중급 ${summaries[i].levels[1].toLocaleString()} · 확장 ${summaries[i].levels[2].toLocaleString()}</span><span>${summaries[i].added===null?'가장 오래된 보관 버전':summaries[i].added?'이전 버전보다 '+summaries[i].added.toLocaleString()+'개 새 단어 추가':'새 단어 추가 없음 · 뜻·예문·단계 등 편집 변경'}</span></button>`).join('')}</div><button id="check-updates">새 배포 확인</button><p class="hint">새 단어집이 배포되면 앱 새 버전 적용 후 여기에 나타나요. 현재 선택은 자동으로 바뀌지 않아요.</p></section>`;
   }
   function bindVersions(){app.querySelectorAll('[data-version]').forEach(b=>b.onclick=()=>{quiz=null;env.selectVersion(b.dataset.version);});$('#check-updates').onclick=env.checkUpdates;}
   return {home,saved,quiz:renderQuiz,versionsPanel,bindVersions,resetQuiz(){quiz=null;},exportList};
