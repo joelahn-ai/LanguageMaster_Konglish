@@ -33,12 +33,12 @@ export async function renderCard(item,edition,sentence) {
     y+=lines.length*lineHeight+gap;
   }
   add('언어의 마술사',21,edition.color,12);
-  add(`${edition.label} · ${item.category} · 학습용 샘플`,18,'#657068',28);
+  add(`${edition.label} · ${item.category} · ${item.review.status==='draft'?'학습용 초안':'학습 카드'}`,18,'#657068',28);
   add(item.text,58,'#25332e',4,true);
   add(`미국식 ${item.pronunciation.ipa} · ${item.word?.pos || '표현'}`,21,'#657068',16);
   add(item.meaning,29,'#25332e',26);
   if (item.word) {
-    add(`가까운 말  ${item.word.relations.syn}`,21,'#657068',10);
+    add(`가까운 말  ${item.word.relations.syn || '이 뜻을 자연스럽게 바꿔 쓸 가까운 말은 없어요.'}`,21,'#657068',10);
     add(`반대말  ${item.word.relations.ant || '이 뜻에 자연스럽게 대응하는 반대말은 없어요.'}`,21,'#657068',28);
   }
   item.examples.forEach((e,i)=> { add(`0${i+1}  ${e.en}`,25,'#25332e',4); add(e.ko,22,'#657068',24); });
