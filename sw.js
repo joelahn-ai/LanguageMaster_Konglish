@@ -1,6 +1,7 @@
-const CACHE='word-magician-shell-174ceae85841';
+const CACHE='word-magician-shell-7b018fe36ff7';
 const ASSETS=['./','./index.html','./styles.css','./app.js','./data.js','./state.js','./card-image.js','./manifest.webmanifest','./icons/icon.svg','./icons/icon-192.png','./icons/icon-512.png','./icons/maskable-512.png'];
-self.addEventListener('install',event=>event.waitUntil(caches.open(CACHE).then(cache=>cache.addAll(ASSETS))));
+// A new worker must not copy still-fresh files from the browser's old HTTP cache.
+self.addEventListener('install',event=>event.waitUntil(caches.open(CACHE).then(cache=>cache.addAll(ASSETS.map(asset=>new Request(asset,{cache:'reload'}))))));
 self.addEventListener('activate',event=>event.waitUntil((async()=>{
   const keys=await caches.keys();
   await Promise.all(keys.filter(k=>k.startsWith('word-magician-shell-')&&k!==CACHE).map(k=>caches.delete(k)));
